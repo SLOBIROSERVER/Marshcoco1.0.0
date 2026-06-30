@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐊 CrocoMalvaviscos - Auto</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --gold: #f0c27a;
+            --pink: #ff9a9e;
+            --white: #fdfcfb;
+            --blue: #a1c4fd;
+            --brown: #8b5e3c;
+            --yellow-aura: #ff3333;
+            --green-aura: #5ce65c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a15;
+            background-image:
+                radial-gradient(ellipse at 50% 30%, #1a1a35 0%, #0a0a15 60%),
+                repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            font-family: 'Segoe UI', 'Poppins', 'Nunito', system-ui, sans-serif;
+            overflow-x: hidden; user-select: none; -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; padding: 10px;
+        }
+        .game-wrapper {
+            position: relative;
+            background: linear-gradient(180deg, #1a1a32 0%, #1e1e3a 30%, #1c1c35 100%);
+            border-radius: 28px;
+            box-shadow:
+                0 25px 80px rgba(0,0,0,0.6),
+                0 0 0 4px rgba(255,255,255,0.1),
+                0 0 0 8px rgba(0,0,0,0.4),
+                0 0 150px rgba(240,194,122,0.12),
+                inset 0 0 80px rgba(0,0,0,0.2);
+            overflow: hidden; max-width: 750px; width: 100%;
+            aspect-ratio: 700/580; max-height: 90vh;
+            transition: transform 0.3s ease;
+        }
+        .game-wrapper.mobile-mode {
+            aspect-ratio: 400/700;
+            max-width: 400px;
+        }
+        .game-wrapper:hover { transform: translateY(-3px); box-shadow: 0 30px 90px rgba(0,0,0,0.65), 0 0 0 4px rgba(255,255,255,0.15), 0 0 0 8px rgba(0,0,0,0.4), 0 0 170px rgba(240,194,122,0.18); }
+        canvas { display: block; width: 100%; height: 100%; border-radius: 26px; cursor: default; touch-action: none; }
+        .ui-overlay { position: absolute; top: 14px; left: 18px; right: 18px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; z-index: 10; gap: 10px; }
+        .score-pill {
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255,255,255,0.25); border-radius: 50px; padding: 8px 18px;
+            color: #fff; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            height: 44px;
+            box-sizing: border-box;
+            min-width: 80px;
+        }
+        .score-pill .value {
+            font-size: 1.05rem; color: #ffffff; text-align: center; font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            line-height: 1;
+        }
+        .lives-pill {
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255,255,255,0.25); border-radius: 50px; padding: 8px 18px;
+            color: #fff; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            height: 44px;
+            box-sizing: border-box;
+        }
+        .lives-pill .heart { font-size: 1.3rem; transition: all 0.3s ease; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4)); }
+        .lives-pill .heart.lost { opacity: 0.2; transform: scale(0.65); filter: grayscale(1) drop-shadow(0 0 0 transparent); }
+        .combo-indicator { display: none; }
+        .level-up-popup { display: none; }
+        .game-over-overlay { display: none; }
+        .mobile-controls { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: none; gap: 24px; z-index: 15; }
+        .ctrl-btn { width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.3); color: #fff; font-size: 2rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; -webkit-tap-highlight-color: transparent; box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+        .ctrl-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.85); border-color: rgba(255,255,255,0.6); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper" id="gameWrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-overlay">
+            <div class="score-pill">
+                <span class="value" id="scoreDisplay">0</span>
+            </div>
+            <div class="lives-pill" id="livesDisplay"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
+        </div>
+        <div class="mobile-controls" id="mobileControls">
+            <button class="ctrl-btn" id="btnLeft">◀</button>
+            <button class="ctrl-btn" id="btnRight">▶</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const gameWrapper = document.getElementById('gameWrapper');
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const livesDisplay = document.getElementById('livesDisplay');
+            const btnLeft = document.getElementById('btnLeft');
+            const btnRight = document.getElementById('btnRight');
+            const mobileControls = document.getElementById('mobileControls');
+
+            // --- IMÁGENES ---
+            const restartImg = new Image();
+            restartImg.crossOrigin = "anonymous";
+            restartImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_132944.png";
+
+            const bonus5Img = new Image();
+            bonus5Img.crossOrigin = "anonymous";
+            bonus5Img.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_152504.png";
+
+            const bonus10Img = new Image();
+            bonus10Img.crossOrigin = "anonymous";
+            bonus10Img.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_152609.png";
+
+            // Imágenes de nivel (1 al 9)
+            const levelImages = [];
+            levelImages[1] = new Image(); levelImages[1].crossOrigin = "anonymous"; levelImages[1].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_150257.png";
+            levelImages[2] = new Image(); levelImages[2].crossOrigin = "anonymous"; levelImages[2].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_150402.png";
+            levelImages[3] = new Image(); levelImages[3].crossOrigin = "anonymous"; levelImages[3].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_150512.png";
+            levelImages[4] = new Image(); levelImages[4].crossOrigin = "anonymous"; levelImages[4].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_151038.png";
+            levelImages[5] = new Image(); levelImages[5].crossOrigin = "anonymous"; levelImages[5].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_151139.png";
+            levelImages[6] = new Image(); levelImages[6].crossOrigin = "anonymous"; levelImages[6].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_151339.png";
+            levelImages[7] = new Image(); levelImages[7].crossOrigin = "anonymous"; levelImages[7].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_151532.png";
+            levelImages[8] = new Image(); levelImages[8].crossOrigin = "anonymous"; levelImages[8].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_152037.png";
+            levelImages[9] = new Image(); levelImages[9].crossOrigin = "anonymous"; levelImages[9].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_152134.png";
+
+            const digitImages = [];
+            digitImages[0] = new Image(); digitImages[0].crossOrigin = "anonymous"; digitImages[0].src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260628_152254.png";
+
+            let isMobileMode = false;
+            let BASE_WIDTH, BASE_HEIGHT;
+            let CROC_Y, CROC_MOUTH_TOP, CROC_MOUTH_WIDTH, CROC_SPEED;
+            let CHIMNEY_X, CHIMNEY_OPENING_Y, CHIMNEY_OPENING_WIDTH;
+            let TRASH_YELLOW_X, TRASH_GREEN_X, TRASH_CAN_Y;
+            let confettiTimer = 0;
+            let safeTimer = 3.0;
+
+            function setDimensions(mobile) {
+                if (mobile) {
+                    BASE_WIDTH = 400; BASE_HEIGHT = 700;
+                    CROC_Y = 550; CROC_MOUTH_TOP = CROC_Y - 60; CROC_MOUTH_WIDTH = 80; CROC_SPEED = 0;
+                    CHIMNEY_X = BASE_WIDTH/2; CHIMNEY_OPENING_Y = 60; CHIMNEY_OPENING_WIDTH = 50;
+                    TRASH_YELLOW_X = 40; TRASH_GREEN_X = BASE_WIDTH - 40; TRASH_CAN_Y = BASE_HEIGHT - 90;
+                } else {
+                    BASE_WIDTH = 700; BASE_HEIGHT = 580;
+                    CROC_Y = 430; CROC_MOUTH_TOP = CROC_Y - 48; CROC_MOUTH_WIDTH = 70; CROC_SPEED = 420;
+                    CHIMNEY_X = BASE_WIDTH/2; CHIMNEY_OPENING_Y = 40; CHIMNEY_OPENING_WIDTH = 44;
+                    TRASH_YELLOW_X = 60; TRASH_GREEN_X = BASE_WIDTH - 60; TRASH_CAN_Y = BASE_HEIGHT - 70;
+                }
+            }
+
+            function detectDevice() {
+                const ua = navigator.userAgent;
+                const mobileRegex = /Android|iPhone|iPad|iPod|webOS/i;
+                return mobileRegex.test(ua) || ('ontouchstart' in window && window.innerWidth < 769);
+            }
+
+            isMobileMode = detectDevice();
+            setDimensions(isMobileMode);
+            if (isMobileMode) {
+                gameWrapper.classList.add('mobile-mode');
+            } else {
+                gameWrapper.classList.remove('mobile-mode');
+            }
+
+            // Imágenes originales
+            const crocImgClosed = new Image(); const crocImgOpen = new Image(); const crocImgHurt = new Image(); const crocImgDead = new Image(); const crocImgLevelUp = new Image();
+            crocImgClosed.crossOrigin = "anonymous"; crocImgOpen.crossOrigin = "anonymous"; crocImgHurt.crossOrigin = "anonymous"; crocImgDead.crossOrigin = "anonymous"; crocImgLevelUp.crossOrigin = "anonymous";
+            crocImgClosed.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260618_211942.png";
+            crocImgOpen.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260618_212002.png";
+            crocImgHurt.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260618_213137.png";
+            crocImgDead.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260618_213541.png";
+            crocImgLevelUp.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260618_212950.png";
+
+            const trashGreenImg = new Image(); const trashYellowImg = new Image();
+            trashGreenImg.crossOrigin = "anonymous"; trashYellowImg.crossOrigin = "anonymous";
+            trashGreenImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260624_204702.png";
+            trashYellowImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260624_204835.png";
+
+            const marshPinkImg = new Image(); const marshBlueImg = new Image(); const marshWhiteImg = new Image(); const marshBrownImg = new Image();
+            marshPinkImg.crossOrigin = "anonymous"; marshBlueImg.crossOrigin = "anonymous"; marshWhiteImg.crossOrigin = "anonymous"; marshBrownImg.crossOrigin = "anonymous";
+            marshPinkImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260619_220721.png";
+            marshBlueImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260619_221538.png";
+            marshWhiteImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260619_221707.png";
+            marshBrownImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260619_221829.png";
+
+            const toxicYellowImg = new Image(); const toxicGreenImg = new Image();
+            toxicYellowImg.crossOrigin = "anonymous"; toxicGreenImg.crossOrigin = "anonymous";
+            toxicYellowImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260624_203421.png";
+            toxicGreenImg.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260624_203535.png";
+
+            const bgImage = new Image();
+            bgImage.crossOrigin = "anonymous";
+            bgImage.src = "https://raw.githubusercontent.com/SLOBIROSERVER/MARSHCOCO/main/Copilot_20260624_210212.png";
+
+            const TARGET_CROC_WIDTH = 520; const TARGET_CROC_HEIGHT = 480;
+            const TRASH_TARGET_WIDTH = 123; const TRASH_TARGET_HEIGHT = 158;
+            const MARSH_TARGET_WIDTH = 96; const MARSH_TARGET_HEIGHT = 108;
+            const TOXIC_TARGET_WIDTH = 96; const TOXIC_TARGET_HEIGHT = 108;
+            const BG_TARGET_WIDTH = 700; const BG_TARGET_HEIGHT = 580;
+
+            let scale = 1;
+            function resizeCanvas() {
+                const rect = gameWrapper.getBoundingClientRect();
+                const maxW = rect.width, maxH = rect.height || (maxW / (BASE_WIDTH/BASE_HEIGHT));
+                const dpr = Math.min(window.devicePixelRatio||1, 2);
+                const targetW = Math.min(maxW, BASE_WIDTH), targetH = targetW / (BASE_WIDTH/BASE_HEIGHT);
+                canvas.width = targetW * dpr; canvas.height = targetH * dpr;
+                canvas.style.width = targetW + 'px'; canvas.style.height = targetH + 'px';
+                scale = targetW / BASE_WIDTH;
+                ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr*scale, dpr*scale);
+            }
+            window.addEventListener('resize', resizeCanvas);
+
+            const STATE = { PLAYING: 'playing', GAMEOVER: 'gameover' };
+            let gameState = STATE.PLAYING;
+            let score = 0, lives = 3, comboCount = 0, comboTimer = 0;
+            let totalCaught = 0, totalTransformed = 0, totalRecycled = 0, totalLost = 0;
+            let marshmallows = [], particles = [], smokeParticles = [];
+            let shakeAmount = 0, shakeDuration = 0;
+            let spawnTimer = 0, spawnInterval = 80, difficultyLevel = 1;
+            let crocX, crocTargetX, crocMouthOpen = 0, crocMouthTarget = 0;
+            let keysPressed = {}, lastFrameTime = performance.now(), frameCount = 0;
+            let swipedMarshmallow = null, swipeStartX = 0, swipeStartY = 0, swipeActive = false, swipeCurrentX = 0, swipeCurrentY = 0;
+            let smokeActive = false, smokeTimer = 0, canWobbleYellow = 0, canWobbleGreen = 0;
+            let slowMotionTimer = 0;
+            let currentLevel = 1, maxLevel = 1, levelScore = 0, levelThreshold = 200, levelUpDisplayTimer = 0;
+            let isHurt = false, hurtTimer = 0;
+            let isLevelUp = false, levelUpTimer = 0;
+
+            function resetCrocPosition() { crocX = BASE_WIDTH/2; crocTargetX = BASE_WIDTH/2; }
+
+            const SAFE_COLORS = ['#ff9a9e','#fdfcfb','#a1c4fd'];
+            const BROWN_COLOR = '#8b5e3c', BROWN_HEX = '#8b5e3c';
+            const AURA_RED = '#ff3333'; const AURA_GREEN = '#5ce65c';
+            const RECYCLE_SPEED = 4.5, SWIPE_THRESHOLD = 30;
+
+            // Progresión más suave: umbrales reducidos un 15 %
+            function getThresholdForLevel(level) {
+                const baseThresholds = [0, 200, 500, 1000, 1800, 3000, 4600, 6800, 9600, 13200, 17600];
+                if (level <= 10) return Math.floor((baseThresholds[level] || 17600) * 0.85);
+                return Math.floor(17600 * Math.pow(1.5, level - 10) * 0.85);
+            }
+
+            function saveProgress() { try { const data = { maxLevel: maxLevel }; localStorage.setItem('crocodileProgress', JSON.stringify(data)); } catch(e) {} }
+            function loadMaxLevel() { try { const raw = localStorage.getItem('crocodileProgress'); if (raw) { const data = JSON.parse(raw); if (typeof data.maxLevel === 'number') maxLevel = data.maxLevel; } } catch(e) {} }
+
+            function roundRect(ctx,x,y,w,h,r) { ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath(); }
+
+            function getMarshImage(color, isBrown, aura) {
+                if (aura === 'yellow') return toxicYellowImg;
+                if (aura === 'green') return toxicGreenImg;
+                if (isBrown) return marshBrownImg;
+                if (color === '#ff9a9e') return marshPinkImg;
+                if (color === '#a1c4fd') return marshBlueImg;
+                if (color === '#fdfcfb') return marshWhiteImg;
+                return marshWhiteImg;
+            }
+
+            class Marshmallow {
+                constructor(x,y,color,isBrown=false,aura=null,bonus=0,isGolden=false) {
+                    this.x=x;this.y=y;this.color=color;this.isBrown=isBrown;this.aura=aura;this.bonus=bonus;this.isGolden=isGolden;
+                    this.clicksRemaining=isBrown?2:0;
+                    this.speed= 50 + Math.random()*60 + difficultyLevel*8;
+                    this.wobblePhase=Math.random()*Math.PI*2;this.wobbleAmp=0.4+Math.random()*0.8;
+                    this.wobbleFreq=1.5+Math.random()*2.5;this.rotation=(Math.random()-0.5)*0.25;this.scalePulse=1;this.pulseDir=1;
+                    this.clickFlashTimer=0;this.sparkTimer=0;this.auraPulse=0;this.auraPulseDir=1;this.recycling=false;this.recycleProgress=0;
+                    this.recycleStartX=0;this.recycleStartY=0;this.recycleTargetX=0;this.recycleTargetY=0;this.recycleCorrect=false;
+                    this.updateImageRef();
+                }
+                updateImageRef() {
+                    this.marshImg = getMarshImage(this.color, this.isBrown && this.clicksRemaining > 0, this.aura);
+                }
+                update(dt) {
+                    if(this.recycling){this.recycleProgress+=RECYCLE_SPEED*dt;if(this.recycleProgress>=1){this.recycleProgress=1;this.finishRecycle();return;}const t=this.recycleProgress;this.x=this.recycleStartX+(this.recycleTargetX-this.recycleStartX)*t;this.y=this.recycleStartY+(this.recycleTargetY-this.recycleStartY)*t;this.rotation*=0.9;return;}
+                    const speedMult=slowMotionTimer>0?0.45:1;this.y+=this.speed*speedMult*dt;this.wobblePhase+=this.wobbleFreq*dt*4;
+                    this.x+=Math.sin(this.wobblePhase)*this.wobbleAmp*dt*60;this.rotation+=(Math.sin(this.wobblePhase*0.7)*0.02)*dt*60;
+                    if(this.isBrown&&this.clicksRemaining>0){this.scalePulse+=0.04*this.pulseDir*dt*60;if(this.scalePulse>=1.08)this.pulseDir=-1;if(this.scalePulse<=0.94)this.pulseDir=1;}
+                    if(this.clickFlashTimer>0)this.clickFlashTimer-=dt;if(this.sparkTimer>0)this.sparkTimer-=dt;
+                    if(this.aura){this.auraPulse+=0.05*this.auraPulseDir*dt*60;if(this.auraPulse>=1){this.auraPulse=1;this.auraPulseDir=-1;}if(this.auraPulse<=0.3){this.auraPulse=0.3;this.auraPulseDir=1;}}
+                }
+                finishRecycle(){
+                    if(this.recycleCorrect){
+                        totalRecycled++;addScore(25 + this.bonus);comboCount+=2;comboTimer=1.0;spawnParticles(this.x,this.y,this.aura==='yellow'?AURA_RED:AURA_GREEN,20);
+                        if(this.aura==='yellow')canWobbleYellow=18;else if(this.aura==='green')canWobbleGreen=18;
+                    }else{
+                        if(this.aura==='yellow')canWobbleGreen=18;else if(this.aura==='green')canWobbleYellow=18;
+                        shakeAmount=8;shakeDuration=0.6;spawnSmoke(this.x,this.y,35);smokeActive=true;smokeTimer=2.8;
+                        spawnParticles(this.x,this.y,'#ff3333',25);
+                    }
+                    updateScoreUI();const idx=marshmallows.indexOf(this);if(idx>=0)marshmallows.splice(idx,1);
+                }
+                draw(ctx){
+                    ctx.save();ctx.translate(this.x,this.y);
+                    let s=1;if(this.recycling)s=1-this.recycleProgress;else if(this.isBrown&&this.clicksRemaining>0)s=this.scalePulse;
+                    ctx.scale(s,s);ctx.rotate(this.rotation);
+                    if(this.aura&&!this.recycling){
+                        const auraColor=this.aura==='yellow'?AURA_RED:AURA_GREEN;
+                        const auraAlpha=0.4+this.auraPulse*0.35; const auraSize=16+this.auraPulse*12;
+                        ctx.shadowColor=auraColor;ctx.shadowBlur=auraSize+8;
+                        const gradAura=ctx.createRadialGradient(0,0,5,0,0,30+auraSize);
+                        gradAura.addColorStop(0, auraColor.replace(')',`, ${auraAlpha+0.2})`).replace('rgb','rgba').replace('#ff3333','rgba(255,51,51,'+(auraAlpha+0.2)+')').replace('#5ce65c','rgba(92,230,92,'+(auraAlpha+0.2)+')'));
+                        gradAura.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gradAura; ctx.beginPath();ctx.arc(0,0,30+auraSize,0,Math.PI*2);ctx.fill(); ctx.shadowColor='transparent';ctx.shadowBlur=0;
+                    }
+                    if(this.isGolden&&!this.recycling){ ctx.shadowColor='#FFD700';ctx.shadowBlur=22; const goldGlow=ctx.createRadialGradient(0,0,5,0,0,35); goldGlow.addColorStop(0,'rgba(255,215,0,0.7)');goldGlow.addColorStop(1,'rgba(255,215,0,0)'); ctx.fillStyle=goldGlow; ctx.beginPath();ctx.arc(0,0,35,0,Math.PI*2);ctx.fill(); ctx.shadowColor='transparent';ctx.shadowBlur=0; }
+                    const img = this.marshImg;
+                    if (img && img.complete && img.naturalWidth > 0) {
+                        const w = this.aura ? TOXIC_TARGET_WIDTH : MARSH_TARGET_WIDTH;
+                        const h = this.aura ? TOXIC_TARGET_HEIGHT : MARSH_TARGET_HEIGHT;
+                        ctx.drawImage(img, -w/2, -h/2, w, h);
+                        if (this.isGolden) { ctx.fillStyle = 'rgba(255,215,0,0.4)'; ctx.beginPath(); ctx.arc(0, 0, w/2, 0, Math.PI*2); ctx.fill(); }
+                    } else { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI*2); ctx.fill(); }
+                    
+                    // Bonus +5 y +10 con imágenes 2x del tamaño anterior = 400x240
+                    if(this.bonus>0 && !this.recycling){
+                        if (this.bonus === 5 && bonus5Img.complete && bonus5Img.naturalWidth > 0) {
+                            ctx.drawImage(bonus5Img, -200, -120, 400, 240);
+                        } else if (this.bonus === 10 && bonus10Img.complete && bonus10Img.naturalWidth > 0) {
+                            ctx.drawImage(bonus10Img, -200, -120, 400, 240);
+                        }
+                    }
+                    if(this.isGolden){
+                        ctx.font='bold 18px "Segoe UI"';ctx.fillStyle='#FFD700'; ctx.shadowColor='rgba(0,0,0,0.7)';ctx.shadowBlur=8; ctx.textAlign='center';ctx.fillText('⭐',0,-25); ctx.shadowBlur=0;
+                    }
+                    ctx.restore();
+                }
+                containsPoint(px,py){
+                    const w = this.aura ? TOXIC_TARGET_WIDTH : MARSH_TARGET_WIDTH;
+                    const h = this.aura ? TOXIC_TARGET_HEIGHT : MARSH_TARGET_HEIGHT;
+                    let extra = this.aura ? 16 : 8;
+                    if (this.isBrown && this.clicksRemaining > 0) extra = 30;
+                    const dx=px-this.x, dy=py-this.y;
+                    return Math.abs(dx) < w/2 + extra && Math.abs(dy) < h/2 + extra;
+                }
+                isOffScreen(){return this.y>BASE_HEIGHT+80;}
+            }
+
+            class Particle {
+                constructor(x,y,color,size,life){this.x=x;this.y=y;this.color=color;this.size=size;this.life=life;this.maxLife=life;const a=Math.random()*Math.PI*2,s=80+Math.random()*250;this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s-Math.random()*200;this.gravity=300+Math.random()*400;}
+                update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.vy+=this.gravity*dt;this.life-=dt;}
+                draw(ctx){const alpha=Math.max(0,this.life/this.maxLife);const grad=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*(0.4+alpha*0.6));grad.addColorStop(0,this.color.replace('1)',`${alpha})`).replace('rgb','rgba'));grad.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.arc(this.x,this.y,this.size*(0.4+alpha*0.6),0,Math.PI*2);ctx.fill();}
+                isDead(){return this.life<=0;}
+            }
+            class SmokeParticle {
+                constructor(x,y,vx,vy,size,life){this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.size=size;this.life=life;this.maxLife=life;this.gravity=-20+Math.random()*-30;}
+                update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.vy+=this.gravity*dt;this.size+=14*dt;this.life-=dt;}
+                draw(ctx){const alpha=Math.max(0,this.life/this.maxLife)*0.7;const grad=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size);grad.addColorStop(0,`rgba(50,50,50,${alpha})`);grad.addColorStop(1,`rgba(30,30,30,0)`);ctx.fillStyle=grad;ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fill();}
+                isDead(){return this.life<=0;}
+            }
+
+            function darkenColor(hex,a){let r,g,b;if(hex.startsWith('#')){r=parseInt(hex.slice(1,3),16);g=parseInt(hex.slice(3,5),16);b=parseInt(hex.slice(5,7),16);}else return hex;return `rgb(${Math.floor(r*(1-a))},${Math.floor(g*(1-a))},${Math.floor(b*(1-a))})`;}
+            function lightenColor(hex,a){let r,g,b;if(hex.startsWith('#')){r=parseInt(hex.slice(1,3),16);g=parseInt(hex.slice(3,5),16);b=parseInt(hex.slice(5,7),16);}else return hex;return `rgb(${Math.min(255,Math.floor(r+(255-r)*a))},${Math.min(255,Math.floor(g+(255-g)*a))},${Math.min(255,Math.floor(b+(255-b)*a))})`;}
+            function lerpColor(h1,h2,t){const r1=parseInt(h1.slice(1,3),16),g1=parseInt(h1.slice(3,5),16),b1=parseInt(h1.slice(5,7),16),r2=parseInt(h2.slice(1,3),16),g2=parseInt(h2.slice(3,5),16),b2=parseInt(h2.slice(5,7),16);return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;}
+
+            function addScore(points){score+=points;levelScore+=points;while(levelScore>=levelThreshold&&gameState===STATE.PLAYING){levelUp();} }
+            function levelUp(){levelScore-=levelThreshold;currentLevel++;if(currentLevel>maxLevel){maxLevel=currentLevel; saveProgress();}levelThreshold=getThresholdForLevel(currentLevel);levelUpDisplayTimer=2.5;shakeAmount=18;shakeDuration=0.7;isLevelUp=true;levelUpTimer=2.5;confettiTimer=2.5;spawnParticles(BASE_WIDTH/2,BASE_HEIGHT/2,'#FFD700',50);}
+
+            function spawnMarshmallow(){
+                const sx=CHIMNEY_X+(Math.random()-0.5)*CHIMNEY_OPENING_WIDTH*0.7,sy=CHIMNEY_OPENING_Y+Math.random()*8;
+                let brownChance=0.18+difficultyLevel*0.03,auraChance=0.10+difficultyLevel*0.025;
+                if (safeTimer > 0) { brownChance = 0; auraChance = 0; }
+                const isBrown=Math.random()<Math.min(brownChance,0.45);
+                let aura=null;if(!isBrown&&Math.random()<Math.min(auraChance,0.30))aura=Math.random()<0.5?'yellow':'green';
+                let color=isBrown?BROWN_COLOR:SAFE_COLORS[Math.floor(Math.random()*SAFE_COLORS.length)];
+                let bonus=0;
+                if(!isBrown&&!aura){
+                    const r=Math.random();
+                    if(r<0.002) bonus=10;
+                    else if(r<0.01) bonus=5;
+                }
+                const isGolden=!isBrown&&!aura&&bonus===0&&Math.random()<0.004;
+                if(isGolden)color='#fdfcfb';
+                const m = new Marshmallow(sx,sy,color,isBrown,aura,bonus,isGolden);
+                marshmallows.push(m);
+                if(bonus>0) {
+                    const particleColor = bonus === 10 ? '#FFD700' : '#00e5ff';
+                    spawnParticles(sx,sy,particleColor,30);
+                }
+                if(isGolden) spawnParticles(sx,sy,'#FFD700',30);
+            }
+            function spawnParticles(x,y,color,c=12){for(let i=0;i<c;i++)particles.push(new Particle(x,y,color,3+Math.random()*7,0.4+Math.random()*0.8));}
+            function spawnTransformParticles(x,y){for(let i=0;i<25;i++){const p=new Particle(x,y,'#ffd700',2+Math.random()*6,0.35+Math.random()*0.6);p.vy=-150-Math.random()*350;p.vx=(Math.random()-0.5)*350;p.gravity=200;particles.push(p);}}
+            function spawnSmoke(x,y,c=25){for(let i=0;i<c;i++){const a=Math.random()*Math.PI*2,s=40+Math.random()*140;smokeParticles.push(new SmokeParticle(x,y,Math.cos(a)*s,-60-Math.random()*220,9+Math.random()*28,1.5+Math.random()*2.8));}}
+
+            function handleDirectBrownClick(px, py) {
+                for (let i = marshmallows.length - 1; i >= 0; i--) {
+                    const m = marshmallows[i];
+                    if (m.isBrown && m.clicksRemaining > 0 && !m.aura && m.containsPoint(px, py) && !m.recycling) {
+                        m.clicksRemaining--;
+                        m.clickFlashTimer = 0.2;
+                        if (m.clicksRemaining === 0) {
+                            m.isBrown = false;
+                            m.color = SAFE_COLORS[Math.floor(Math.random() * SAFE_COLORS.length)];
+                            m.sparkTimer = 0.35;
+                            totalTransformed++;
+                            m.updateImageRef();
+                            spawnTransformParticles(m.x, m.y);
+                            m.speed *= 0.5;
+                            if (m.speed < 200) m.speed = Math.min(m.speed * 2, 200);
+                        } else {
+                            spawnParticles(m.x, m.y, '#ffaa00', 6);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function convertAllBrownMarshmallows() {
+                const browns = marshmallows.filter(m => m.isBrown && m.clicksRemaining > 0 && !m.recycling);
+                if (browns.length === 0) return false;
+                browns.forEach(target => {
+                    target.clicksRemaining--;
+                    target.clickFlashTimer = 0.2;
+                    if (target.clicksRemaining === 0) {
+                        target.isBrown = false;
+                        target.color = SAFE_COLORS[Math.floor(Math.random() * SAFE_COLORS.length)];
+                        target.sparkTimer = 0.35;
+                        totalTransformed++;
+                        target.updateImageRef();
+                        spawnTransformParticles(target.x, target.y);
+                        target.speed *= 0.5;
+                        if (target.speed < 200) target.speed = Math.min(target.speed * 2, 200);
+                    } else {
+                        spawnParticles(target.x, target.y, '#ffaa00', 6);
+                    }
+                });
+                return true;
+            }
+
+            function getCanvasCoords(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*(BASE_WIDTH/r.width),y:(e.clientY-r.top)*(BASE_HEIGHT/r.height)};}
+            function findSwipableMarshmallow(px,py){
+                for(let i=marshmallows.length-1;i>=0;i--){
+                    const m=marshmallows[i];
+                    if(!m.recycling && !m.isBrown && m.containsPoint(px,py) && gameState===STATE.PLAYING) return m;
+                }
+                return null;
+            }
+            function startSwipe(m,px,py){swipedMarshmallow=m;swipeStartX=px;swipeStartY=py;swipeCurrentX=px;swipeCurrentY=py;swipeActive=true;}
+            function updateSwipe(px,py){if(swipeActive){swipeCurrentX=px;swipeCurrentY=py;}}
+            function endSwipe(){
+                if(!swipeActive||!swipedMarshmallow)return;
+                const dx=swipeCurrentX-swipeStartX;
+                if(Math.abs(dx)>SWIPE_THRESHOLD){
+                    const m = swipedMarshmallow;
+                    let correct = false;
+                    if (m.aura) {
+                        const dir=dx>0; correct = (m.aura==='green'&&dir)||(m.aura==='yellow'&&!dir);
+                    }
+                    m.recycling=true;m.recycleProgress=0;
+                    m.recycleStartX=m.x;m.recycleStartY=m.y;
+                    m.recycleTargetX=dx>0?TRASH_GREEN_X:TRASH_YELLOW_X;
+                    m.recycleTargetY=TRASH_CAN_Y-20;
+                    m.recycleCorrect=correct;
+                }
+                swipeActive=false;swipedMarshmallow=null;
+            }
+
+            function checkCrocCollision(m){if(m.recycling)return null;const ml=crocX-CROC_MOUTH_WIDTH/2,mr=crocX+CROC_MOUTH_WIDTH/2,ml2=m.x-(m.aura?TOXIC_TARGET_WIDTH:MARSH_TARGET_WIDTH)/2+8,mr2=m.x+(m.aura?TOXIC_TARGET_WIDTH:MARSH_TARGET_WIDTH)/2-8;if(mr2>ml&&ml2<mr&&m.y>=CROC_Y)return(m.aura||(m.isBrown&&m.clicksRemaining>0))?'danger':'safe';return null;}
+            function eatMarshmallow(m,idx){
+                if(m.aura||(m.isBrown&&m.clicksRemaining>0)){
+                    lives--;totalLost++;comboCount=0;comboTimer=0;shakeAmount=14;shakeDuration=0.45;spawnParticles(m.x,m.y,'#ff3333',22);crocMouthTarget=-8;updateLivesUI();isHurt=true;hurtTimer=0.8;
+                    if(lives<=0)endGame('vidas');
+                }else{
+                    const base=10+Math.floor(comboCount/3)*5,points=base+m.bonus+(m.isGolden?50:0);
+                    addScore(points);totalCaught++;comboCount++;comboTimer=1.2;
+                    spawnParticles(m.x,m.y,m.color,16);crocMouthTarget=6;updateScoreUI();
+                    if(m.isGolden){spawnParticles(m.x,m.y,'#FFD700',35);slowMotionTimer=2.5;}
+                }
+                marshmallows.splice(idx,1);
+            }
+            function updateScoreUI(){scoreDisplay.textContent=score;scoreDisplay.style.transform='scale(1.3)';setTimeout(()=>{scoreDisplay.style.transform='scale(1)';},150);}
+            function updateLivesUI(){const hearts=livesDisplay.querySelectorAll('.heart');hearts.forEach((h,i)=>{if(i>=lives)h.classList.add('lost');else h.classList.remove('lost');});}
+            function endGame(r=''){
+                if(gameState === STATE.GAMEOVER) return;
+                gameState=STATE.GAMEOVER;
+                spawnParticles(crocX, CROC_Y, '#111111', 40);
+                const btnX = crocX, btnY = CROC_Y - 180;
+                spawnParticles(btnX, btnY, '#FFD700', 30);
+            }
+            function restartGame(){
+                score=0;lives=3;comboCount=0;comboTimer=0;totalCaught=0;totalTransformed=0;totalRecycled=0;totalLost=0;
+                marshmallows=[];particles=[];smokeParticles=[];shakeAmount=0;shakeDuration=0;spawnTimer=0;spawnInterval=80;difficultyLevel=1;
+                resetCrocPosition();crocMouthOpen=0;crocMouthTarget=0;swipedMarshmallow=null;swipeActive=false;smokeActive=false;smokeTimer=0;
+                canWobbleYellow=0;canWobbleGreen=0;slowMotionTimer=0;currentLevel=1;levelScore=0;levelThreshold=getThresholdForLevel(1);
+                levelUpDisplayTimer=0;isHurt=false;hurtTimer=0;isLevelUp=false;levelUpTimer=0;confettiTimer=0;
+                safeTimer = 3.0;
+                gameState=STATE.PLAYING;
+                updateScoreUI();updateLivesUI();scoreDisplay.textContent='0';
+                document.querySelectorAll('.heart').forEach(h=>h.classList.remove('lost'));
+                lastFrameTime=performance.now();
+            }
+
+            function drawLevelBar(ctx){
+                const barX= isMobileMode ? 10 : 20, barY= isMobileMode ? 180 : 160;
+                const barWidth= isMobileMode ? 20 : 24, barHeight= isMobileMode ? 300 : 260;
+                const progress=Math.min(1,levelScore/levelThreshold);
+                ctx.fillStyle='rgba(0,0,0,0.55)';roundRect(ctx,barX-4,barY-4,barWidth+8,barHeight+8,14);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;roundRect(ctx,barX-4,barY-4,barWidth+8,barHeight+8,14);ctx.stroke();
+                const bgGrad=ctx.createLinearGradient(barX,barY,barX+barWidth,barY);bgGrad.addColorStop(0,'#1a1a1a');bgGrad.addColorStop(0.5,'#2a2a2a');bgGrad.addColorStop(1,'#1a1a1a');ctx.fillStyle=bgGrad;roundRect(ctx,barX,barY,barWidth,barHeight,10);ctx.fill();
+                let barColor;if(progress<0.33)barColor=lerpColor('#ff3333','#ff9933',progress/0.33);else if(progress<0.66)barColor=lerpColor('#ff9933','#ffdd33',(progress-0.33)/0.33);else barColor=lerpColor('#ffdd33','#33dd33',(progress-0.66)/0.34);
+                const filledHeight=barHeight*progress;const filledY=barY+barHeight-filledHeight;const fillGrad=ctx.createLinearGradient(barX,filledY,barX,barY+barHeight);fillGrad.addColorStop(0,lightenColor(barColor,0.3));fillGrad.addColorStop(0.5,barColor);fillGrad.addColorStop(1,darkenColor(barColor,0.3));ctx.fillStyle=fillGrad;roundRect(ctx,barX+2,filledY+2,barWidth-4,filledHeight-4,7);ctx.fill();
+                if(filledHeight>8){const shineGrad=ctx.createLinearGradient(barX,filledY,barX+barWidth/2,filledY);shineGrad.addColorStop(0,'rgba(255,255,255,0.3)');shineGrad.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=shineGrad;roundRect(ctx,barX+3,filledY+3,barWidth/2-2,Math.min(filledHeight-6,30),5);ctx.fill();}
+                ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;roundRect(ctx,barX,barY,barWidth,barHeight,10);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 11px "Segoe UI"';ctx.textAlign='center';ctx.fillText(Math.floor(progress*100)+'%',barX+barWidth/2,barY+barHeight+20);
+                const circleX=barX+barWidth/2,circleY=barY-24,circleRadius=18;ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();ctx.arc(circleX,circleY+2,circleRadius,0,Math.PI*2);ctx.fill();
+                const circleGrad=ctx.createRadialGradient(circleX-4,circleY-4,2,circleX,circleY,circleRadius);circleGrad.addColorStop(0,'#4a4a6a');circleGrad.addColorStop(1,'#1a1a2e');ctx.fillStyle=circleGrad;ctx.beginPath();ctx.arc(circleX,circleY,circleRadius,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#FFD700';ctx.lineWidth=3;ctx.stroke();ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#FFD700';ctx.font='bold 15px "Segoe UI"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(currentLevel,circleX,circleY);
+                const maxTextY=circleY-30;ctx.fillStyle='rgba(0,0,0,0.7)';const maxText='Max: '+maxLevel;ctx.font='bold 13px "Segoe UI"';const textWidth=ctx.measureText(maxText).width+14;roundRect(ctx,circleX-textWidth/2,maxTextY-12,textWidth,22,8);ctx.fill();ctx.strokeStyle='rgba(255,215,0,0.5)';ctx.lineWidth=1.5;roundRect(ctx,circleX-textWidth/2,maxTextY-12,textWidth,22,8);ctx.stroke();ctx.fillStyle='#FFD700';ctx.fillText(maxText,circleX,maxTextY+2);
+            }
+
+            function drawTrashCan(ctx,x,y,imgOriginal, wobble){
+                ctx.save();const wx=wobble?(Math.random()-0.5)*wobble:0;ctx.translate(x+wx,y);
+                if(imgOriginal && imgOriginal.complete && imgOriginal.naturalWidth > 0){
+                    ctx.drawImage(imgOriginal, -61, -79, 123, 158);
+                }else{
+                    ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.ellipse(0,10,32,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#888';roundRect(ctx,-24,-30,48,60,10);ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            function drawCrocodile(ctx){
+                const sway = Math.sin(frameCount * 0.04) * 4.5;
+                const tilt = Math.sin(frameCount * 0.03) * 0.087;
+                const cx = crocX; const cy = CROC_Y + sway;
+                let img = null;
+                if(gameState===STATE.GAMEOVER){img = crocImgDead;}
+                else if(isLevelUp&&levelUpTimer>0){img = crocImgLevelUp;}
+                else if(isHurt&&hurtTimer>0){img = crocImgHurt;}
+                else{
+                    const isChewing = crocMouthOpen > 2.5;
+                    img = isChewing ? crocImgOpen : crocImgClosed;
+                }
+                ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt);
+                if(img && img.complete && img.naturalWidth > 0){
+                    const drawW = isMobileMode ? TARGET_CROC_WIDTH * 0.7 : TARGET_CROC_WIDTH;
+                    const drawH = isMobileMode ? TARGET_CROC_HEIGHT * 0.7 : TARGET_CROC_HEIGHT;
+                    ctx.drawImage(img, -drawW/2, -drawH/2 + 20, drawW, drawH);
+                }else{
+                    ctx.fillStyle='#5aad48';roundRect(ctx,-90,-80,180,160,28);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-30,-40,16,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(30,-40,16,0,Math.PI*2);ctx.fill();ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(-26,-42,8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(34,-42,8,0,Math.PI*2);ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            function drawBackground(ctx){
+                if (bgImage.complete && bgImage.naturalWidth > 0) {
+                    ctx.drawImage(bgImage, 0, 0, BASE_WIDTH, BASE_HEIGHT);
+                } else {
+                    const wallGrad=ctx.createLinearGradient(0,0,0,BASE_HEIGHT);
+                    wallGrad.addColorStop(0,'#f8efe0');wallGrad.addColorStop(0.3,'#f2e4d0');wallGrad.addColorStop(0.6,'#ecdcc4');wallGrad.addColorStop(1,'#e0d0b8');
+                    ctx.fillStyle=wallGrad;ctx.fillRect(0,0,BASE_WIDTH,BASE_HEIGHT);
+                }
+            }
+
+            function drawLevelUpImage(ctx) {
+                if (levelUpDisplayTimer <= 0) return;
+                const totalTime = 2.5;
+                const progress = 1 - (levelUpDisplayTimer / totalTime);
+                const alpha = Math.min(1, levelUpDisplayTimer / 0.5);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                const centerX = BASE_WIDTH/2, centerY = BASE_HEIGHT/2;
+                let img = null;
+                if (currentLevel >= 1 && currentLevel <= 9) {
+                    img = levelImages[currentLevel];
+                } else if (currentLevel >= 10) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 120px "Segoe UI"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(currentLevel, centerX, centerY);
+                    ctx.restore();
+                    return;
+                }
+                if (img && img.complete && img.naturalWidth > 0) {
+                    let scaleFactor = 1.0;
+                    if (progress < 0.2) {
+                        scaleFactor = 0.5 + (progress / 0.2) * 0.7;
+                    } else if (progress < 0.4) {
+                        scaleFactor = 1.2 - ((progress - 0.2) / 0.2) * 0.2;
+                    }
+                    const w = 360, h = 360;
+                    const drawW = w * scaleFactor;
+                    const drawH = h * scaleFactor;
+                    ctx.drawImage(img, centerX - drawW/2, centerY - drawH/2, drawW, drawH);
+                } else {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 120px "Segoe UI"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(currentLevel, centerX, centerY);
+                }
+                ctx.restore();
+            }
+
+            function drawComboImage(ctx) {
+                if (comboTimer <= 0 || comboCount < 5) return;
+                const alpha = Math.min(1, comboTimer / 0.3);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                const centerX = BASE_WIDTH/2, centerY = BASE_HEIGHT * 0.45;
+                let img = comboCount >= 10 ? bonus10Img : bonus5Img;
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const w = 400, h = 240; // mismo tamaño que los bonus individuales
+                    ctx.drawImage(img, centerX - w/2, centerY - h/2, w, h);
+                } else {
+                    ctx.font = 'bold 48px "Segoe UI"';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('✨ ' + comboCount + '!', centerX, centerY);
+                }
+                ctx.restore();
+            }
+
+            let gameLoopId = null;
+            function gameLoop(timestamp){
+                if(!lastFrameTime)lastFrameTime=timestamp;
+                let dt=(timestamp-lastFrameTime)/1000;if(dt>0.15)dt=0.15;if(dt<=0)dt=0.016;
+                lastFrameTime=timestamp;frameCount++;resizeCanvas();update(dt);render(ctx);
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }
+            function update(dt){
+                for(let i=particles.length-1;i>=0;i--){particles[i].update(dt);if(particles[i].isDead())particles.splice(i,1);}for(let i=smokeParticles.length-1;i>=0;i--){smokeParticles[i].update(dt);if(smokeParticles[i].isDead())smokeParticles.splice(i,1);}
+                if(gameState===STATE.GAMEOVER){if(shakeDuration>0){shakeDuration-=dt;if(shakeDuration<=0)shakeAmount=0;else shakeAmount*=0.88;}return;}if(smokeActive){smokeTimer-=dt;if(smokeTimer>0&&Math.random()<0.7)spawnSmoke(canWobbleGreen>canWobbleYellow?TRASH_GREEN_X:TRASH_YELLOW_X,TRASH_CAN_Y-25,3);if(smokeTimer<=0){smokeActive=false;endGame('humo');return;}}
+                if(slowMotionTimer>0)slowMotionTimer-=dt;if(levelUpDisplayTimer>0)levelUpDisplayTimer-=dt;if(isHurt){hurtTimer-=dt;if(hurtTimer<=0){isHurt=false;hurtTimer=0;}}if(isLevelUp){levelUpTimer-=dt;if(levelUpTimer<=0){isLevelUp=false;levelUpTimer=0;}}
+                if(confettiTimer>0){confettiTimer-=dt;if(confettiTimer>0&&Math.random()<0.4){const colors=['#FFD700','#FF6B6B','#4ECDC4','#FFE66D','#A8E6CF','#FF8A5C'];spawnParticles(BASE_WIDTH/2+Math.random()*200-100,BASE_HEIGHT/2+Math.random()*200-100,colors[Math.floor(Math.random()*colors.length)],6);}}
+                if (safeTimer > 0) { safeTimer -= dt; if (safeTimer < 0) safeTimer = 0; }
+                canWobbleYellow*=Math.exp(-3*dt);canWobbleGreen*=Math.exp(-3*dt);
+                difficultyLevel = 1 + Math.floor(score/450);
+                spawnInterval = Math.max(38, 80 - difficultyLevel*2.5);
+                spawnTimer+=dt*60;
+                if(spawnTimer>=spawnInterval&&gameState===STATE.PLAYING&&!smokeActive){spawnTimer=0;spawnMarshmallow();if(difficultyLevel>=4&&Math.random()<0.2)setTimeout(()=>{if(gameState===STATE.PLAYING)spawnMarshmallow();},150+Math.random()*200);}
+                for(let i=marshmallows.length-1;i>=0;i--){const m=marshmallows[i];m.update(dt);if(m.recycling&&m.recycleProgress>=1)continue;if(!m.recycling){const c=checkCrocCollision(m);if(c){eatMarshmallow(m,i);continue;}if(m.isOffScreen())marshmallows.splice(i,1);}}
+                if (!isMobileMode) {
+                    let moveDir=0;if(keysPressed['ArrowLeft']||keysPressed['KeyA']||keysPressed['a']||mobileLeftPressed)moveDir=-1;if(keysPressed['ArrowRight']||keysPressed['KeyD']||keysPressed['d']||mobileRightPressed)moveDir=1;if(moveDir!==0&&gameState===STATE.PLAYING)crocTargetX+=moveDir*CROC_SPEED*dt;
+                    crocTargetX=Math.max(CROC_MOUTH_WIDTH/2+5,Math.min(BASE_WIDTH-CROC_MOUTH_WIDTH/2-5,crocTargetX));crocX+=(crocTargetX-crocX)*Math.min(1,14*dt);
+                } else { crocX = BASE_WIDTH/2; }
+                let closestDist = Infinity;
+                for (const m of marshmallows) { if (m.recycling || m.isBeingDragged) continue; if (m.aura || (m.isBrown && m.clicksRemaining > 0)) continue; const dist = Math.abs(m.y - CROC_Y); if (dist < closestDist) closestDist = dist; }
+                if (closestDist < 80) { const proximityTarget = 8 * (1 - closestDist / 80); crocMouthTarget = Math.max(crocMouthTarget, proximityTarget); }
+                crocMouthOpen += (crocMouthTarget - crocMouthOpen) * Math.min(1, 10*dt);if(Math.abs(crocMouthTarget - crocMouthOpen) < 0.3) crocMouthTarget = 0;
+                if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)comboCount=0;}if(shakeDuration>0){shakeDuration-=dt;if(shakeDuration<=0)shakeAmount=0;else shakeAmount*=Math.exp(-6*dt);}
+            }
+            function render(ctx){
+                ctx.clearRect(0,0,BASE_WIDTH,BASE_HEIGHT);let sx=0,sy=0;if(shakeAmount>0.3){sx=(Math.random()-0.5)*shakeAmount*2;sy=(Math.random()-0.5)*shakeAmount*2;}ctx.save();ctx.translate(sx,sy);
+                drawBackground(ctx);drawLevelBar(ctx);
+                drawTrashCan(ctx,TRASH_YELLOW_X,TRASH_CAN_Y,trashYellowImg,canWobbleYellow);
+                drawTrashCan(ctx,TRASH_GREEN_X,TRASH_CAN_Y,trashGreenImg,canWobbleGreen);
+                drawCrocodile(ctx);
+                for(const m of marshmallows)m.draw(ctx);
+                if(swipeActive&&swipedMarshmallow){const m=swipedMarshmallow,dx=swipeCurrentX-swipeStartX,a=Math.atan2(swipeCurrentY-swipeStartY,dx);ctx.strokeStyle=m.aura==='yellow'?'rgba(255,51,51,0.7)':'rgba(92,230,92,0.7)';ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x+Math.cos(a)*45,m.y+Math.sin(a)*45);ctx.stroke();ctx.setLineDash([]);}
+                for(const p of particles)p.draw(ctx);for(const s of smokeParticles)s.draw(ctx);if(smokeActive&&smokeTimer<2.0){ctx.fillStyle=`rgba(25,25,25,${Math.min(0.65,(1-smokeTimer/2.8)*0.85)})`;ctx.fillRect(0,0,BASE_WIDTH,BASE_HEIGHT);}
+                
+                drawComboImage(ctx);
+                drawLevelUpImage(ctx);
+                
+                if(gameState === STATE.GAMEOVER) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0,0,BASE_WIDTH,BASE_HEIGHT);
+                    const btnX = crocX, btnY = CROC_Y - 180;
+                    // Botón de reinicio palpitante
+                    const pulse = 1 + Math.sin(frameCount * 0.1) * 0.08;
+                    ctx.save();
+                    ctx.translate(btnX, btnY);
+                    ctx.scale(pulse, pulse);
+                    if(restartImg.complete && restartImg.naturalWidth > 0){
+                        const btnSize = 200;
+                        ctx.drawImage(restartImg, -btnSize/2, -btnSize/2, btnSize, btnSize);
+                    } else {
+                        ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2);
+                        ctx.fillStyle = '#FFD700'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.font = 'bold 24px "Segoe UI"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('↺', 0, 0);
+                    }
+                    ctx.restore();
+                }
+                ctx.restore();if(slowMotionTimer>0){ctx.fillStyle='rgba(100,150,255,0.06)';ctx.fillRect(0,0,BASE_WIDTH,BASE_HEIGHT);}
+            }
+
+            let mobileLeftPressed=false,mobileRightPressed=false;
+            window.addEventListener('keydown',e=>{keysPressed[e.code]=true;if(['ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code))e.preventDefault();});
+            window.addEventListener('keyup',e=>{keysPressed[e.code]=false;});
+            canvas.addEventListener('mousedown',e=>{
+                const c=getCanvasCoords(e);
+                if(gameState===STATE.GAMEOVER) {
+                    const btnX = crocX, btnY = CROC_Y - 180;
+                    if(Math.abs(c.x-btnX) < 100 && Math.abs(c.y-btnY) < 100) { restartGame(); return; }
+                }
+                if(gameState!==STATE.PLAYING)return;
+                if (handleDirectBrownClick(c.x, c.y)) { e.preventDefault(); return; }
+                const m=findSwipableMarshmallow(c.x,c.y);
+                if(m){startSwipe(m,c.x,c.y);e.preventDefault();}else convertAllBrownMarshmallows();
+            });
+            window.addEventListener('mousemove',e=>{if(swipeActive){const c=getCanvasCoords(e);updateSwipe(c.x,c.y);}});
+            window.addEventListener('mouseup',()=>{if(swipeActive)endSwipe();});
+            canvas.addEventListener('touchstart',e=>{
+                const t=e.touches[0];if(!t)return;const c=getCanvasCoords(t);
+                if(gameState===STATE.GAMEOVER) {
+                    const btnX = crocX, btnY = CROC_Y - 180;
+                    if(Math.abs(c.x-btnX) < 100 && Math.abs(c.y-btnY) < 100) { restartGame(); e.preventDefault(); return; }
+                }
+                if(gameState!==STATE.PLAYING)return;
+                if (handleDirectBrownClick(c.x, c.y)) { e.preventDefault(); return; }
+                const m=findSwipableMarshmallow(c.x,c.y);
+                if(m){startSwipe(m,c.x,c.y);e.preventDefault();}else{ convertAllBrownMarshmallows(); e.preventDefault(); }
+            },{passive:false});
+            canvas.addEventListener('touchmove',e=>{if(!swipeActive)return;e.preventDefault();const t=e.touches[0];if(!t)return;const c=getCanvasCoords(t);updateSwipe(c.x,c.y);},{passive:false});
+            canvas.addEventListener('touchend',e=>{if(swipeActive){e.preventDefault();endSwipe();}});
+            canvas.addEventListener('touchcancel',()=>{if(swipeActive)endSwipe();});
+            btnLeft.addEventListener('pointerdown',e=>{e.preventDefault();mobileLeftPressed=true;});btnLeft.addEventListener('pointerup',e=>{e.preventDefault();mobileLeftPressed=false;});btnLeft.addEventListener('pointerleave',()=>{mobileLeftPressed=false;});
+            btnRight.addEventListener('pointerdown',e=>{e.preventDefault();mobileRightPressed=true;});btnRight.addEventListener('pointerup',e=>{e.preventDefault();mobileRightPressed=false;});btnRight.addEventListener('pointerleave',()=>{mobileRightPressed=false;});
+            [btnLeft,btnRight].forEach(b=>{b.addEventListener('touchstart',e=>{e.preventDefault();if(b===btnLeft)mobileLeftPressed=true;else mobileRightPressed=true;});b.addEventListener('touchend',e=>{e.preventDefault();mobileLeftPressed=false;mobileRightPressed=false;});b.addEventListener('touchcancel',()=>{mobileLeftPressed=false;mobileRightPressed=false;});});
+            function checkMobile(){mobileControls.style.display=(!isMobileMode&&(/Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)||('ontouchstart' in window&&window.innerWidth<769)))?'flex':'none';}checkMobile();window.addEventListener('resize',checkMobile);
+
+            function autoStart() {
+                loadMaxLevel();
+                resizeCanvas();
+                levelThreshold = getThresholdForLevel(1);
+                updateScoreUI(); updateLivesUI(); scoreDisplay.textContent = score;
+                resetCrocPosition(); crocMouthOpen = 0; crocMouthTarget = 0;
+                safeTimer = 3.0;
+                for(let i=0;i<2;i++) setTimeout(()=>{ if(gameState===STATE.PLAYING) spawnMarshmallow(); }, i*500);
+                lastFrameTime = performance.now();
+                if (gameLoopId) cancelAnimationFrame(gameLoopId);
+                gameLoopId = requestAnimationFrame(gameLoop);
+                checkMobile();
+            }
+
+            autoStart();
+        })();
+    </script>
+</body>
+</html>
